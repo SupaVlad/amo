@@ -12,12 +12,12 @@ let timeInterval = null;
 
 const baseUrl = 'http://localhost:8010/proxy/api/v4/leads';
 
+let rows = '';
 
 function fetchWithDynamicParams(baseUrl, paramsObj) {
   
   const url = new URL(baseUrl);
   const params = new URLSearchParams(paramsObj);
-  console.log(params)
   fetch(`${url}?${params}`, {
     method: 'GET',
     headers: headers,
@@ -41,13 +41,13 @@ function fetchWithDynamicParams(baseUrl, paramsObj) {
   })
   .then(data => {
     console.log(data._embedded.leads);
-    let rows = '';
+    
     data._embedded.leads.forEach(lead => {
       rows += `<tr><td>${lead.name}</td><td>${lead.price}</td><td>${lead.id}</td></tr>`
     })
     document.getElementById('tableRows').innerHTML = rows;
     console.log(data._embedded.leads.length)
-    if ( data._embedded.leads.length > 0){
+    if ( data._links.next ){
       currentPage = currentPage + 1
     } else {
       clearInterval(timeInterval);
@@ -60,11 +60,10 @@ function fetchWithDynamicParams(baseUrl, paramsObj) {
   });
 }
 
-const dynamicParams = {
-  page: currentPage,
-  limit: 3
-};
-
 timeInterval = setInterval( function() {
+  const dynamicParams = {
+    page: currentPage,
+    limit: 3
+  };
   fetchWithDynamicParams(baseUrl, dynamicParams)
 }, 1000);
