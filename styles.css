@@ -27,6 +27,15 @@
     background-color: white;
   }
 
+  .accordion.open .content {
+    height: auto;
+  }
+  
+  .accordion .content {
+    height: 0;
+    transition: height 0.3s ease;
+  }
+
   .accordion .content p {
     margin: 10px 0;
   }

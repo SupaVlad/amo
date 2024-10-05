@@ -69,8 +69,9 @@ function fetchTasks() {
 // Функция для сопоставления данных и рендеринга
 function checkAndRender() {
   if (allLeads.length && allTasks.length) {
-    allLeads.forEach(lead => {
+    allLeads.forEach(( lead, index ) => {
       // Находим задачи, связанные с этим лидом
+      const task = allTasks[index];
       const tasksForLead = allTasks.filter(task => task.lead_id === lead.id);
 
       rows += `
@@ -82,10 +83,11 @@ function checkAndRender() {
           <span class="icon">&plus;</span>
         </button>
         <div class="content">
-        ${tasksForLead.length > 0 ? tasksForLead.map(task => `<p>Task ID: ${task.id}</p>`).join('') : '<p>No tasks</p>'}
+        ${task ? `<p>ID Задачи: ${task.id}</p>` : '<p>Нет задач</p>'}
         </div>
       </div>
       `;
+      console.log(allTasks)
     });
 
     document.getElementById('tableRows').innerHTML = rows;
@@ -97,6 +99,7 @@ function checkAndRender() {
         const activeAccordion = document.querySelector(".menu-button.open");
         if (activeAccordion && activeAccordion !== this) {
           activeAccordion.nextElementSibling.style.display = 'none';
+          activeAccordion.nextElementSibling.style.height = '0'; // Set height to 0 when closed
           activeAccordion.classList.remove("open");
         }
 
@@ -104,8 +107,10 @@ function checkAndRender() {
         const content = this.nextElementSibling;
         if (this.classList.contains("open")) {
           content.style.display = 'block';
+          content.style.height = 'auto';
         } else {
           content.style.display = 'none';
+          content.style.height = '0';
         }
       });
     });
