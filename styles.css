@@ -1,40 +1,49 @@
-.accordion-container {
-    width: 100%;
-    margin: 0 auto;
-  }
-  
-  .menu-button {
-    width: 100%;
-    padding: 10px 20px;
-    margin-top: 2px;
-    font-size: 18px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border: none;
-    background-color: #d4e1f9;
-    cursor: pointer;
-  }
-  
-  .menu-button:hover {
-    background-color: #92b1e9;
-  }
-  
-  .icon {
-    font-size: 20px;
-    transition: 0.4s;
-  }
-  
-  .menu-button.open .icon {
-    transform: rotate(45deg);
-  }
-  
-  .content {
-    padding: 0 20px;
-    background-color: #f2f2f2;
-    transition: 0.4s;
-    height: 0;
+.accordion {
+    margin: 10px 0;
+    border: 1px solid #ddd;
+    border-radius: 5px;
     overflow: hidden;
   }
 
-  
+  .accordion button {
+    background-color: #f1f1f1;
+    cursor: pointer;
+    padding: 18px;
+    width: 100%;
+    text-align: left;
+    border: none;
+    outline: none;
+    transition: background-color 0.3s ease;
+  }
+
+  .accordion button.open {
+    background-color: #ccc;
+  }
+
+  .accordion .content {
+    padding: 0 18px;
+    display: none;
+    overflow: hidden;
+    background-color: white;
+  }
+
+  .accordion .content p {
+    margin: 10px 0;
+  }
+
+  .menu-button {
+    font-size: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .icon {
+    font-size: 18px;
+    transform: rotate(0);
+    transition: transform 0.3s ease;
+  }
+
+  .open .icon {
+    transform: rotate(45deg);
+  }

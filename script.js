@@ -12,111 +12,113 @@ const baseUrls = [
   'http://localhost:8010/proxy/api/v4/tasks' // вторая ссылка
 ];
 
-let rows = ['', '']; // Для хранения данных из двух запросов
+let rows = ''; // Для хранения объединенных данных
+let allLeads = [];
+let allTasks = [];
 
-function fetchWithDynamicParams(baseUrl, paramsObj, index) {
-  const url = new URL(baseUrl);
-  const params = new URLSearchParams(paramsObj);
+// Флаги для отслеживания окончания данных по лидам и задачам
+let hasMoreLeads = true;
+let hasMoreTasks = true;
+
+// Функция для получения данных по лидерам
+function fetchLeads() {
+  const url = new URL(baseUrls[0]);
+  const params = new URLSearchParams({ page: currentPage[0], limit: 3 });
 
   fetch(`${url}?${params}`, {
     method: 'GET',
     headers: headers,
     redirect: 'follow',
   })
-    .then(response => {
-      const code = response.status;
-      if (code < 200 || code > 204) {
-        const errors = {
-          400: 'Bad request',
-          401: 'Unauthorized',
-          403: 'Forbidden',
-          404: 'Not found',
-          500: 'Internal server error',
-          502: 'Bad gateway',
-          503: 'Service unavailable',
-        };
-        throw new Error(errors[code] || 'Undefined error', { cause: code });
-      }
-      return response.json();
-    })
+    .then(response => response.json())
     .then(data => {
-      console.log(data._embedded.leads || data._embedded.tasks); // Здесь нужно указать, как называется массив данных для второй ссылки
-
-      // Определяем, какие данные обрабатывать в зависимости от индекса
-      const leads = data._embedded.leads || data._embedded.tasks;
-      leads.forEach(lead => {
-
-        if (!rows[index]) {
-          rows[index] = ''; // или можно задать любой другой базовый формат
-        }
-       //rows[index] += `<tr><td>${lead.name}</td><td>${lead.price}</td><td>${lead.id}</td></tr>`;  // Форматируем строки для вывода
-       rows[index] += `
-  <div class="accordion">
-    <button class="menu-button">
-      <p>${lead.name}</p>
-      <p>${lead.price}</p>
-      <p>${lead.id}</p>
-      <span class="icon">&plus;</span>
-    </button>
-    <div class="content">
-      ${index === 0 ? '' : data._embedded.tasks.map(task => `<p>${task.id}</p>`)}
-    </div>
-  </div>
-`;
-      });
-
-      // Обновляем HTML элемент для этой ссылки
-      document.getElementById(`tableRows${index}`).innerHTML = rows[index];
-      
-      console.log(leads.length);
-
-      // Проверяем, есть ли следующая страница
-      if (data._links.next) {
-        currentPage[index]++; // Увеличиваем номер страницы для текущей ссылки
+      allLeads = data._embedded.leads; // Сохраняем лидов
+      if (data._links && data._links.next) {
+        currentPage[0]++; // Увеличиваем страницу для лидов, если есть следующая страница
       } else {
-        clearInterval(timeInterval);
+        hasMoreLeads = false; // Устанавливаем флаг, что данных больше нет
       }
-
-      const menuBtns = document.querySelectorAll(".menu-button");
-
-      menuBtns.forEach((menuBtn) => {
-        menuBtn.addEventListener("click", function () {
-          //----- open only one menu --------------
-          const activeAccordion = document.querySelector(".menu-button.open");
-          if (activeAccordion && activeAccordion !== this) {
-            activeAccordion.nextElementSibling.style.height = 0;
-            activeAccordion.classList.remove("open");
-          }
-          //------------------------------------------------
-
-          this.classList.toggle("open");
-          const content = this.nextElementSibling;
-          if (this.classList.contains("open")) {
-            content.style.height = content.scrollHeight + "px";
-          } else {
-            content.style.height = 0;
-          }
-        });
-      });
-      console.log(menuBtns)
-
+      checkAndRender(); // Проверяем и выводим, если есть данные из обеих ссылок
     })
-    .catch(error => {
-      console.error('Ошибка:', error.message);
-      console.error('Код ошибки:', error.cause);
-      clearInterval(timeInterval);
+    .catch(error => console.error('Ошибка получения лидов:', error));
+}
+
+// Функция для получения данных по задачам
+function fetchTasks() {
+  const url = new URL(baseUrls[1]);
+  const params = new URLSearchParams({ page: currentPage[1], limit: 3 });
+
+  fetch(`${url}?${params}`, {
+    method: 'GET',
+    headers: headers,
+    redirect: 'follow',
+  })
+    .then(response => response.json())
+    .then(data => {
+      allTasks = data._embedded.tasks; // Сохраняем задачи
+      if (data._links && data._links.next) {
+        currentPage[1]++; // Увеличиваем страницу для задач, если есть следующая страница
+      } else {
+        hasMoreTasks = false; // Устанавливаем флаг, что данных больше нет
+      }
+      checkAndRender(); // Проверяем и выводим, если есть данные из обеих ссылок
+    })
+    .catch(error => console.error('Ошибка получения задач:', error));
+}
+
+// Функция для сопоставления данных и рендеринга
+function checkAndRender() {
+  if (allLeads.length && allTasks.length) {
+    allLeads.forEach(lead => {
+      // Находим задачи, связанные с этим лидом
+      const tasksForLead = allTasks.filter(task => task.lead_id === lead.id);
+
+      rows += `
+      <div class="accordion">
+        <button class="menu-button">
+          <p>Lead: ${lead.name}</p>
+          <p>Price: ${lead.price}</p>
+          <p>Lead ID: ${lead.id}</p>
+          <span class="icon">&plus;</span>
+        </button>
+        <div class="content">
+        ${tasksForLead.length > 0 ? tasksForLead.map(task => `<p>Task ID: ${task.id}</p>`).join('') : '<p>No tasks</p>'}
+        </div>
+      </div>
+      `;
     });
+
+    document.getElementById('tableRows').innerHTML = rows;
+
+    // Добавляем функционал для аккордеонов
+    const menuBtns = document.querySelectorAll(".menu-button");
+    menuBtns.forEach(menuBtn => {
+      menuBtn.addEventListener("click", function () {
+        const activeAccordion = document.querySelector(".menu-button.open");
+        if (activeAccordion && activeAccordion !== this) {
+          activeAccordion.nextElementSibling.style.display = 'none';
+          activeAccordion.classList.remove("open");
+        }
+
+        this.classList.toggle("open");
+        const content = this.nextElementSibling;
+        if (this.classList.contains("open")) {
+          content.style.display = 'block';
+        } else {
+          content.style.display = 'none';
+        }
+      });
+    });
+
+    // Останавливаем обновление, если больше нет данных для обеих ссылок
+    if (!hasMoreLeads && !hasMoreTasks) {
+      clearInterval(timeInterval); // Остановка периодических запросов
+    }
+  }
 }
 
 // Таймер для периодических запросов
 const timeInterval = setInterval(function () {
-  baseUrls.forEach((baseUrl, index) => {
-    const dynamicParams = {
-      page: currentPage[index],
-      limit: 3
-    };
-    fetchWithDynamicParams(baseUrl, dynamicParams, index); // Передаем индекс для идентификации ссылки
-  });
+  if (hasMoreLeads) fetchLeads();
+  if (hasMoreTasks) fetchTasks();
 }, 1000);
-
-
