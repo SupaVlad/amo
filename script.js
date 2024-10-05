@@ -59,7 +59,7 @@ function fetchWithDynamicParams(baseUrl, paramsObj, index) {
       <span class="icon">&plus;</span>
     </button>
     <div class="content">
-      ${index === 0 ? '' : data._embedded.tasks.map(task => `<p>${task.id}</p>`).join('')}
+      ${index === 0 ? '' : data._embedded.tasks.map(task => `<p>${task.id}</p>`)}
     </div>
   </div>
 `;
