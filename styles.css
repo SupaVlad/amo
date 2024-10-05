@@ -1,0 +1,40 @@
+.accordion-container {
+    width: 100%;
+    margin: 0 auto;
+  }
+  
+  .menu-button {
+    width: 100%;
+    padding: 10px 20px;
+    margin-top: 2px;
+    font-size: 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: none;
+    background-color: #d4e1f9;
+    cursor: pointer;
+  }
+  
+  .menu-button:hover {
+    background-color: #92b1e9;
+  }
+  
+  .icon {
+    font-size: 20px;
+    transition: 0.4s;
+  }
+  
+  .menu-button.open .icon {
+    transform: rotate(45deg);
+  }
+  
+  .content {
+    padding: 0 20px;
+    background-color: #f2f2f2;
+    transition: 0.4s;
+    height: 0;
+    overflow: hidden;
+  }
+
+  
