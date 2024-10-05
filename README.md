@@ -8,3 +8,5 @@
 # и запустить с помощью команды
 
 ```lcp --proxyUrl https://vladeternity.amocrm.ru```
+
+# для обхода cors помимиму local-cors-proxy мне помогло отключение его в браузере 
