@@ -4,7 +4,7 @@ const headers = {
   'Authorization': `Bearer ${access_token}`,
   'content-type': 'application/json',
 };
-
+let preloader;
 let currentPage = [1, 1]; // Хранит номера страниц для двух ссылок
 
 const baseUrls = [
@@ -20,6 +20,28 @@ let allTasks = [];
 let hasMoreLeads = true;
 let hasMoreTasks = true;
 
+// Добавьте элемент предзагрузчика в HTML
+document.addEventListener("DOMContentLoaded", function() {
+  preloader = document.getElementById('preloader');
+  console.log(preloader); // Это должно записать элемент предзагрузчика в консоль
+  // Остальной ваш JavaScript-код здесь
+});
+
+function fetchNextPage() {
+  if (hasMoreLeads) {
+    fetchLeads();
+  } else if (hasMoreTasks) {
+    fetchTasks();
+  } else {
+    clearInterval(timeInterval);
+    renderData(); // Render data after receiving all data
+
+  }
+  
+}
+
+const timeInterval = setInterval(fetchNextPage, 1000);
+
 // Функция для получения данных по лидерам
 function fetchLeads() {
   const url = new URL(baseUrls[0]);
@@ -32,13 +54,13 @@ function fetchLeads() {
   })
     .then(response => response.json())
     .then(data => {
-      allLeads = data._embedded.leads; // Сохраняем лидов
+      allLeads = [...allLeads, ...data._embedded.leads]; // Сохраняем лидов
       if (data._links && data._links.next) {
         currentPage[0]++; // Увеличиваем страницу для лидов, если есть следующая страница
       } else {
         hasMoreLeads = false; // Устанавливаем флаг, что данных больше нет
       }
-      checkAndRender(); // Проверяем и выводим, если есть данные из обеих ссылок
+      if (hasMoreTasks) fetchTasks(); // Вызвать fetchTasks только после завершения fetchLeads
     })
     .catch(error => console.error('Ошибка получения лидов:', error));
 }
@@ -55,30 +77,29 @@ function fetchTasks() {
   })
     .then(response => response.json())
     .then(data => {
-      allTasks = data._embedded.tasks; // Сохраняем задачи
+      allTasks = [...allTasks, ...data._embedded.tasks]; // Конкатенируем новые задачи к существующему массиву
       if (data._links && data._links.next) {
         currentPage[1]++; // Увеличиваем страницу для задач, если есть следующая страница
       } else {
         hasMoreTasks = false; // Устанавливаем флаг, что данных больше нет
       }
-      checkAndRender(); // Проверяем и выводим, если есть данные из обеих ссылок
     })
     .catch(error => console.error('Ошибка получения задач:', error));
 }
-
+let rowsArray = [];
 // Функция для сопоставления данных и рендеринга
-function checkAndRender() {
-  if (allLeads.length && allTasks.length) {
-    allLeads.forEach(( lead, index ) => {
-      // Находим задачи, связанные с этим лидом
-      const task = allTasks[index];
-      const tasksForLead = allTasks.filter(task => task.lead_id === lead.id);
-
-      rows += `
+function renderData() {
+  let newRows = ''; // новая переменная для хранения новых данных
+  rowsArray = [];
+  allLeads.forEach((lead, index) => {
+    // Находим задачи, связанные с этим лидом
+    const task = allTasks[index];
+    const tasksForLead = allTasks.filter(task => task.lead_id === lead.id);
+    rowsArray.push(`
       <div class="accordion">
         <button class="menu-button">
-          <p>Lead: ${lead.name}</p>
-          <p>Price: ${lead.price}</p>
+          <p>Название: ${lead.name}</p>
+          <p>Цена: ${lead.price}</p>
           <p>Lead ID: ${lead.id}</p>
           <span class="icon">&plus;</span>
         </button>
@@ -86,44 +107,38 @@ function checkAndRender() {
         ${task ? `<p>ID Задачи: ${task.id}</p>` : '<p>Нет задач</p>'}
         </div>
       </div>
-      `;
-      console.log(allTasks)
+      `);
+    console.log(allTasks)
+  });
+  rows = rowsArray.join('');
+  document.getElementById('tableRows').innerHTML = rows;
+
+  // Добавляем функционал для аккордеонов
+  const menuBtns = document.querySelectorAll(".menu-button");
+  menuBtns.forEach(menuBtn => {
+    menuBtn.addEventListener("click", function () {
+      const activeAccordion = document.querySelector(".menu-button.open");
+      if (activeAccordion && activeAccordion !== this) {
+        activeAccordion.nextElementSibling.style.display = 'none';
+        activeAccordion.nextElementSibling.style.height = '0'; // Set height to 0 when closed
+        activeAccordion.classList.remove("open");
+      }
+
+      this.classList.toggle("open");
+      const content = this.nextElementSibling;
+      if (this.classList.contains("open")) {
+        content.style.display = 'block';
+        content.style.height = 'auto';
+      } else {
+        content.style.display = 'none';
+        content.style.height = '0';
+      }
     });
+  });
 
-    document.getElementById('tableRows').innerHTML = rows;
-
-    // Добавляем функционал для аккордеонов
-    const menuBtns = document.querySelectorAll(".menu-button");
-    menuBtns.forEach(menuBtn => {
-      menuBtn.addEventListener("click", function () {
-        const activeAccordion = document.querySelector(".menu-button.open");
-        if (activeAccordion && activeAccordion !== this) {
-          activeAccordion.nextElementSibling.style.display = 'none';
-          activeAccordion.nextElementSibling.style.height = '0'; // Set height to 0 when closed
-          activeAccordion.classList.remove("open");
-        }
-
-        this.classList.toggle("open");
-        const content = this.nextElementSibling;
-        if (this.classList.contains("open")) {
-          content.style.display = 'block';
-          content.style.height = 'auto';
-        } else {
-          content.style.display = 'none';
-          content.style.height = '0';
-        }
-      });
-    });
-
-    // Останавливаем обновление, если больше нет данных для обеих ссылок
-    if (!hasMoreLeads && !hasMoreTasks) {
-      clearInterval(timeInterval); // Остановка периодических запросов
-    }
+  // Останавливаем обновление, если больше нет данных для обеих ссылок
+  if (!hasMoreLeads && !hasMoreTasks) {
+    clearInterval(timeInterval); // Остановка периодических запросов
   }
+  preloader.style.display = 'none'; // Скрываем предзагрузчик после отрисовки данных
 }
-
-// Таймер для периодических запросов
-const timeInterval = setInterval(function () {
-  if (hasMoreLeads) fetchLeads();
-  if (hasMoreTasks) fetchTasks();
-}, 1000);
